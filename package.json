@@ -1,0 +1,35 @@
+{
+  "name": "hetma-credential",
+  "version": "0.1.0",
+  "description": "HETMA Credential — members upload training certificates across competency areas and earn the HETMA Credential. Sign-in through the HETMA community on Mighty. (Vite + Supabase test app)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "stack:install": "bash dev/local-stack/install-binaries.sh",
+    "stack:start": "bash dev/local-stack/start.sh --seed",
+    "stack:start:empty": "bash dev/local-stack/start.sh",
+    "stack:stop": "bash dev/local-stack/stop.sh",
+    "test": "vitest run",
+    "test:integration": "INTEGRATION=1 vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:integration && npm run test:e2e"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@fontsource/barlow": "5.2.8",
+    "@fontsource/barlow-condensed": "5.2.8",
+    "@supabase/supabase-js": "^2.117.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "pg": "^8.23.1",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

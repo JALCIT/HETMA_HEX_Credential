@@ -1,0 +1,50 @@
+# Builds the site and runs every test (unit, integration, end-to-end) on each push
+# and pull request, against the local Supabase-compatible stack and mock Mighty.
+# No secrets are needed: everything runs on local, throwaway services.
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Install local stack binaries
+        run: npm run stack:install
+      - name: Integration tests
+        run: npm run stack:start && npm run test:integration
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: |
+          npm run stack:start
+          printf "VITE_SUPABASE_URL=http://127.0.0.1:54321\nVITE_SUPABASE_ANON_KEY=%s\nVITE_APP_ENV=development\n" "$(node dev/local-stack/jwt.mjs anon)" > .env.local
+          npm run test:e2e
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

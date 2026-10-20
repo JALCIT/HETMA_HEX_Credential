@@ -1,0 +1,5 @@
+# Keep shell scripts and SQL with Unix line endings (CI and the local stack run on Linux).
+* text=auto
+*.sh text eol=lf
+*.sql text eol=lf
+*.png binary

@@ -1,0 +1,21 @@
+# Supabase CLI settings for the HETMA Credential test project.
+project_id = "hetma-credential"
+
+[auth]
+site_url = "http://127.0.0.1:5173"
+additional_redirect_urls = ["http://127.0.0.1:5173"]
+# People never sign up here directly: accounts are created by the mighty-auth
+# function after a Mighty sign-in.
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+
+# Browser redirects arrive without a Supabase JWT, so this function checks the
+# OAuth state, PKCE verifier and a cookie instead.
+[functions.mighty-auth]
+verify_jwt = false
+
+[functions.credential-sync]
+verify_jwt = true
