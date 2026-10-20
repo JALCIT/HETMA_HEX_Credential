@@ -208,9 +208,10 @@ describe('Mighty badge sync', () => {
 describe('managing areas and providers', () => {
   it('only super admins can delete; unused areas are deleted, used ones hidden', async () => {
     const admin = await newAdmin('admin'), sup = await newAdmin('super_admin');
-    const make = async code => must(await sup.client.from('competency_areas')
-      .insert({ code, name: `Test ${code}`, is_required: false, sort_order: 999 }).select('id').single()).id;
-    const unused = await make(`T${String(n).slice(-5)}`), used = await make(`U${String(n).slice(-5)}`);
+    // Areas don't need a code any more.
+    const make = async name => must(await sup.client.from('competency_areas')
+      .insert({ name, is_required: false, sort_order: 999 }).select('id').single()).id;
+    const unused = await make(`Unused area ${n}`), used = await make(`Used area ${n}`);
     const m = await member();
     expect(await submit(m.client, m.id, used)).toMatchObject({ ok: true });
 
@@ -243,7 +244,7 @@ describe('managing areas and providers', () => {
     const m = await member();
     expect(await completeAll(m.client, m.id)).toMatchObject({ credential_status: 'active' });
     const extra = must(await sup.client.from('competency_areas')
-      .insert({ code: `X${String(n).slice(-5)}`, name: 'Extra required area', is_required: true, sort_order: 999 }).select('id').single()).id;
+      .insert({ name: 'Extra required area', is_required: true, sort_order: 999 }).select('id').single()).id;
     try {
       const r1 = must(await sup.client.rpc('admin_recheck_credentials'));
       expect(r1.ok).toBe(true);

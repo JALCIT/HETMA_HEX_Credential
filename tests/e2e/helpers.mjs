@@ -9,8 +9,10 @@ export async function signInAs(page, memberId) {
 }
 /** A small but valid-looking PDF (checked by its first bytes in the app). */
 export const pdf = name => ({ name, mimeType: 'application/pdf', buffer: Buffer.from(`%PDF-1.4\n% ${name}\n${'0'.repeat(200)}\n%%EOF\n`) });
-export async function uploadArea(page, code, file = pdf(`${code}.pdf`)) {
-  await page.locator(`li[data-area="${code}"]`).getByRole('button', { name: /Upload/ }).click();
+/** The member's row for an area, found by its name. */
+export const areaRow = (page, name) => page.locator('li.area', { has: page.locator('.area-name', { hasText: name }) });
+export async function uploadArea(page, name, file = pdf('certificate.pdf')) {
+  await areaRow(page, name).getByRole('button', { name: /Upload/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('#up-file').setInputFiles(file);
   await expect(dialog.getByRole('button', { name: 'Submit' })).toBeDisabled();

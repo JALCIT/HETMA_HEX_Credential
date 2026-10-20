@@ -84,8 +84,7 @@ function areaRow(area, submissions, profile) {
   const provider = s ? (s.provider?.name || `${s.provider_other} (other)`) : '';
   const meta = s ? `${esc(provider)} · completed ${fmtDate(s.completion_date)}${s.expires_on ? ` · ${status === 'expired' ? 'expired' : 'expires'} ${fmtDate(s.expires_on)}` : ''}` : (area.is_required ? 'No certificate uploaded yet' : 'Optional area');
   const canUpload = !profile?.upload_blocked && ['none', 'revoked', 'expired'].includes(status);
-  return `<li class="area" data-area="${esc(area.code)}">
-    <span class="code">${esc(area.code)}</span>
+  return `<li class="area" data-area="${esc(area.id)}">
     <div class="area-main">
       <span class="area-name">${esc(area.name)}</span>
       <span class="meta">${meta}</span>

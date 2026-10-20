@@ -32,7 +32,7 @@ It's built to move into the **HETMA Event Passport** later (same stack, same con
 
 - `src/main.js` router + sign-in page · `src/shell.js` frame · `src/api.js` Supabase calls
 - `src/pages/member.js`, `admin.js`, `public.js` · `src/lib/credential.js` (pure, unit tested) · `src/lib/dom.js` (from the Passport)
-- `supabase/migrations/` schema (`...0100`), RPCs (`...0200`), storage bucket + policies (`...0300`, skipped locally), super-admin self-review + area/provider delete + credential re-check (`...0400`) · `supabase/seed.sql` starting areas/providers
+- `supabase/migrations/` schema (`...0100`), RPCs (`...0200`), storage bucket + policies (`...0300`, skipped locally), super-admin self-review + area/provider delete + credential re-check (`...0400`), area code optional and unused in the UI (`...0500`) · `supabase/seed.sql` starting areas/providers
 - `supabase/functions/_shared/mighty.js` all Edge Function logic (web-standard JS, runs on Deno and Node) · `mighty-auth/index.ts`, `credential-sync/index.ts` thin Deno entrypoints · `supabase/config.toml` (`mighty-auth` has `verify_jwt = false`)
 - `dev/local-stack/` GoTrue + PostgREST + `services.mjs` (local Edge Functions runner + Storage stand-in) + `mock-mighty.mjs` + `proxy.mjs` on :54321 + `seed-users.mjs`
 

@@ -59,7 +59,6 @@ test('a super admin adds, edits and deletes areas and providers', async ({ page 
 
   // Add an optional area, then delete it (no uploads, so it's really deleted).
   await page.getByRole('button', { name: 'Add area' }).click();
-  await page.locator('#ar-code').fill('ZZTEST');
   await page.locator('#ar-name').fill('Temporary test area');
   await page.getByRole('checkbox', { name: 'Required for the credential' }).uncheck();
   await page.getByRole('button', { name: 'Save' }).click();

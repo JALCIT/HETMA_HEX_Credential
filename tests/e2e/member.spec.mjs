@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signInAs, uploadArea, noHorizontalOverflow, pdf, MIGHTY } from './helpers.mjs';
+import { signInAs, uploadArea, areaRow, noHorizontalOverflow, pdf, MIGHTY } from './helpers.mjs';
 
 test('a member signs in with Mighty, uploads the missing areas and earns the credential', async ({ page }) => {
   await signInAs(page, 1001); // Jordan Rivera: 7 of 10 done in the demo data
@@ -8,7 +8,7 @@ test('a member signs in with Mighty, uploads the missing areas and earns the cre
   await noHorizontalOverflow(page);
 
   // A file that isn't really a PDF is refused before upload.
-  await page.locator('li[data-area="SIG"]').getByRole('button', { name: /Upload/ }).click();
+  await areaRow(page, 'Digital signage').getByRole('button', { name: /Upload/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('#up-file').setInputFiles({ name: 'fake.pdf', mimeType: 'application/pdf', buffer: Buffer.from('<html>' + 'x'.repeat(300)) });
   await dialog.locator('#up-attest').check();
@@ -16,10 +16,10 @@ test('a member signs in with Mighty, uploads the missing areas and earns the cre
   await expect(dialog.getByText('doesn’t look like a real PDF')).toBeVisible();
   await dialog.getByRole('button', { name: 'Cancel' }).click();
 
-  await uploadArea(page, 'SIG');
-  await uploadArea(page, 'DES');
+  await uploadArea(page, 'Digital signage');
+  await uploadArea(page, 'AV design & standards');
   await expect(page.getByRole('heading', { name: '1 area left to your HEx Credential' })).toBeVisible();
-  await uploadArea(page, 'ADA');
+  await uploadArea(page, 'Accessibility & ADA compliance');
   await expect(page.getByRole('heading', { name: 'You’ve earned the HEx Credential' })).toBeVisible();
   await expect(page.locator('#cred-url')).toContainText('/#/c/');
 
