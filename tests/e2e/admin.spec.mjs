@@ -51,3 +51,36 @@ test('non-staff members are sent away from the admin workspace', async ({ page }
   await expect(page.getByRole('link', { name: 'Admin' })).toHaveCount(0);
   await expect(page).toHaveURL(/#\/me/);
 });
+
+test('a super admin adds, edits and deletes areas and providers', async ({ page }) => {
+  await signInAs(page, 1004); // Alex Kim, super admin
+  await page.goto('/#/admin/areas');
+  await expect(page.getByRole('heading', { name: 'Providers' })).toBeVisible();
+
+  // Add an optional area, then delete it (no uploads, so it's really deleted).
+  await page.getByRole('button', { name: 'Add area' }).click();
+  await page.locator('#ar-code').fill('ZZTEST');
+  await page.locator('#ar-name').fill('Temporary test area');
+  await page.getByRole('checkbox', { name: 'Required for the credential' }).uncheck();
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('tr', { hasText: 'Temporary test area' })).toBeVisible();
+  await page.locator('tr', { hasText: 'Temporary test area' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Delete area' }).click();
+  await expect(page.getByText(/it will be hidden instead/)).toBeVisible();
+  await page.getByRole('button', { name: 'Click again to delete' }).click();
+  await expect(page.getByText('Temporary test area was deleted.')).toBeVisible();
+  await expect(page.locator('tr', { hasText: 'Temporary test area' })).toHaveCount(0);
+
+  // Add a provider, rename it, delete it.
+  await page.getByRole('button', { name: 'Add provider' }).click();
+  await page.locator('#pv-name').fill('Example Academy');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.locator('tr', { hasText: 'Example Academy' }).getByRole('button', { name: 'Edit' }).click();
+  await page.locator('#pv-name').fill('Example Training Academy');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('tr', { hasText: 'Example Training Academy' })).toBeVisible();
+  await page.locator('tr', { hasText: 'Example Training Academy' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Delete provider' }).click();
+  await page.getByRole('button', { name: 'Click again to delete' }).click();
+  await expect(page.getByText('Example Training Academy was deleted.')).toBeVisible();
+});

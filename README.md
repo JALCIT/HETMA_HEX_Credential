@@ -25,7 +25,7 @@ The credential is **active** when every active, required competency area has at 
 - `#/me`: progress ring, one row per area (upload, view, status, HETMA's note on revoked uploads), credential link and LinkedIn instructions
 - `#/admin/uploads`: filter (Not checked / Verified / Revoked / All), search, **Random spot-check**, review dialog (open file, verify, revoke with reason, restore, pause uploads)
 - `#/admin/members`: tier, areas done, credential and Mighty badge status, retry badge sync, pause uploads
-- `#/admin/areas`: add and edit competency areas, required/optional, approved providers per area
+- `#/admin/areas`: add, edit and (super admins) delete competency areas and providers; required/optional; approved providers per area. Anything with uploads is hidden instead of deleted. Every change re-checks all credentials and updates Mighty badges
 - `#/admin/team`: super admins add or remove admins
 - `#/admin/audit`: every staff action and setup change
 - `#/c/<slug>`: public credential page (name, date, areas, status; never files, contact details or reasons)
@@ -57,11 +57,11 @@ GitHub Actions can run the build and all three suites on every push: move `ci/ci
 
 ```bash
 npm test                  # unit: progress rules, file checks, PKCE, cookie parsing, tier mapping
-npm run test:integration  # 35 tests against the local stack (run stack:start first)
-npm run test:e2e          # 6 Playwright tests, phone + desktop (run stack:start first; set CHROMIUM_PATH if needed)
+npm run test:integration  # 38 tests against the local stack (run stack:start first)
+npm run test:e2e          # 7 Playwright tests, phone + desktop (run stack:start first; set CHROMIUM_PATH if needed)
 ```
 
-Integration tests cover: sign-in (PKCE redirect, cookie binding, single-use state, issuer check, cancelled sign-in, join hand-off, tab-bound single-use handoff (no login CSRF), no takeover through a pre-registered look-alike account, one account per Mighty member, tier mapping), upload validation (attestation, Mighty-linked accounts only, own folder only, provider/dates/area/file type and extension), RLS boundaries (own data only, no direct writes, no anonymous reads, no self-promotion), credential earn/end on expiry, public page contents, admin verify/revoke/restore with reasons and audit, no reviewing your own uploads, last super admin protection, area edits audited, and badge add/remove through Mighty (idempotent, staff-only for others).
+Integration tests cover: sign-in (PKCE redirect, cookie binding, single-use state, issuer check, cancelled sign-in, join hand-off, tab-bound single-use handoff (no login CSRF), no takeover through a pre-registered look-alike account, one account per Mighty member, tier mapping), upload validation (attestation, Mighty-linked accounts only, own folder only, provider/dates/area/file type and extension), RLS boundaries (own data only, no direct writes, no anonymous reads, no self-promotion), credential earn/end on expiry, public page contents, admin verify/revoke/restore with reasons and audit, admins can't review their own uploads (super admins can, audited as self-review), area/provider delete-or-hide and credential re-check, last super admin protection, area edits audited, and badge add/remove through Mighty (idempotent, staff-only for others).
 
 ## Known limitations and things to confirm on the real Mighty
 

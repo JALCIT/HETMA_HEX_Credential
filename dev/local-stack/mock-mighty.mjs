@@ -95,7 +95,13 @@ http.createServer(async (req, res) => {
   if (gql && req.method === 'POST') {
     const id = tokens.get((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
     if (!id) return send(res, 401, { errors: [{ message: 'Unauthorized' }] });
-    return send(res, 200, { data: { me: { id: String(id), name: member(id)?.name || `Member ${id}` } } });
+    // Like the real API: `id` is a Relay global ID, `resourceId` the numeric member ID.
+    const q = JSON.parse(await body(req) || '{}').query || '';
+    const me = { id: Buffer.from(`Member-${id}`).toString('base64'), resourceId: String(id), name: member(id)?.name || `Member ${id}` };
+    const fields = (q.match(/me\s*\{([^}]*)\}/)?.[1] || '').trim().split(/\s+/).filter(Boolean);
+    const bad = fields.filter(f => !(f in me));
+    if (bad.length) return send(res, 200, { errors: [{ message: `Field '${bad[0]}' doesn't exist on type 'Member'` }] });
+    return send(res, 200, { data: { me: Object.fromEntries(fields.map(f => [f, me[f]])) } });
   }
 
   const admin = p.match(/^\/admin\/v1\/networks\/([^/]+)\/members\/(\d+)\/(plans|badges)(?:\/(\d+))?\/?$/);

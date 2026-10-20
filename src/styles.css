@@ -205,3 +205,7 @@ table.data { width: 100%; border-collapse: collapse; font-size: 15px; }
   .top-nav { margin-left: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+/* ---------- admin: areas & providers */
+.section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; margin: 28px 0 8px; }
+.actions #ar-delete, .actions #pv-delete { margin-right: auto; }

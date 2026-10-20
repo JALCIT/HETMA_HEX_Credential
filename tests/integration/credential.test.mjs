@@ -134,11 +134,21 @@ describe('admin audit: verify, revoke, restore', () => {
     expect(list.some(r => r.id === submission_id)).toBe(true);
   });
 
-  it('staff cannot review their own uploads', async () => {
+  it('admins cannot review their own uploads; super admins can, and it is audited as a self-review', async () => {
     const admin = await newAdmin();
     await sql('insert into public.credentials (user_id) values ($1) on conflict do nothing', [admin.id]);
     const { submission_id } = await submit(admin.client, admin.id, AREAS[0].id);
     expect(must(await admin.client.rpc('admin_revoke_submission', { p_id: submission_id, p_reason: 'test reason' }))).toMatchObject({ error: 'own_upload' });
+    expect(must(await admin.client.rpc('admin_verify_submission', { p_id: submission_id }))).toMatchObject({ error: 'own_upload' });
+
+    const sup = await newAdmin('super_admin');
+    const own = await submit(sup.client, sup.id, AREAS[0].id);
+    expect(must(await sup.client.rpc('admin_verify_submission', { p_id: own.submission_id }))).toMatchObject({ ok: true });
+    expect(must(await sup.client.rpc('admin_revoke_submission', { p_id: own.submission_id, p_reason: 'Wrong file' }))).toMatchObject({ ok: true });
+    expect(must(await sup.client.rpc('admin_restore_submission', { p_id: own.submission_id }))).toMatchObject({ ok: true });
+    const log = await sql(`select action, details from public.audit_log where target_id = $1 order by id`, [own.submission_id]);
+    expect(log.map(l => l.action)).toEqual(['verify_upload', 'revoke_upload', 'restore_upload']);
+    expect(log.every(l => l.details.self_review === true)).toBe(true);
   });
 
   it('the last super admin cannot be removed; admins cannot manage the team', async () => {
@@ -192,5 +202,60 @@ describe('Mighty badge sync', () => {
   it('rejects calls without a signed-in user', async () => {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/credential-sync`, { method: 'POST', body: '{}' });
     expect(res.status).toBe(401);
+  });
+});
+
+describe('managing areas and providers', () => {
+  it('only super admins can delete; unused areas are deleted, used ones hidden', async () => {
+    const admin = await newAdmin('admin'), sup = await newAdmin('super_admin');
+    const make = async code => must(await sup.client.from('competency_areas')
+      .insert({ code, name: `Test ${code}`, is_required: false, sort_order: 999 }).select('id').single()).id;
+    const unused = await make(`T${String(n).slice(-5)}`), used = await make(`U${String(n).slice(-5)}`);
+    const m = await member();
+    expect(await submit(m.client, m.id, used)).toMatchObject({ ok: true });
+
+    expect(must(await admin.client.rpc('admin_delete_area', { p_id: unused }))).toMatchObject({ error: 'forbidden' });
+    expect(must(await sup.client.rpc('admin_delete_area', { p_id: unused }))).toMatchObject({ ok: true, result: 'deleted' });
+    expect(await sql('select 1 from public.competency_areas where id = $1', [unused])).toHaveLength(0);
+    expect(must(await sup.client.rpc('admin_delete_area', { p_id: used }))).toMatchObject({ ok: true, result: 'hidden', uploads: 1 });
+    expect(await sql('select is_active from public.competency_areas where id = $1', [used])).toEqual([{ is_active: false }]);
+    expect(await sql('select count(*)::int as c from public.submissions where area_id = $1', [used])).toEqual([{ c: 1 }]);
+    const anon = await anonClient().rpc('admin_delete_area', { p_id: used });
+    expect(anon.error).not.toBeNull();
+  });
+
+  it('providers: unused are deleted, used ones hidden so uploads keep the name', async () => {
+    const admin = await newAdmin('admin'), sup = await newAdmin('super_admin');
+    const make = async name => must(await sup.client.from('providers').insert({ name }).select('id').single()).id;
+    const usedName = `Used ${n}`;
+    const unused = await make(`Unused ${n}`), used = await make(usedName);
+    const m = await member();
+    expect(await submit(m.client, m.id, AREAS[0].id, { p_provider_id: used, p_provider_other: null })).toMatchObject({ ok: true });
+    expect(must(await admin.client.rpc('admin_delete_provider', { p_id: unused }))).toMatchObject({ error: 'forbidden' });
+    expect(must(await sup.client.rpc('admin_delete_provider', { p_id: unused }))).toMatchObject({ ok: true, result: 'deleted' });
+    expect(must(await sup.client.rpc('admin_delete_provider', { p_id: used }))).toMatchObject({ ok: true, result: 'hidden' });
+    const [s] = await sql('select p.name from public.submissions s join public.providers p on p.id = s.provider_id where s.user_id = $1', [m.id]);
+    expect(s.name).toBe(usedName);
+  });
+
+  it('re-checks everyone when the required areas change', async () => {
+    const sup = await newAdmin('super_admin');
+    const m = await member();
+    expect(await completeAll(m.client, m.id)).toMatchObject({ credential_status: 'active' });
+    const extra = must(await sup.client.from('competency_areas')
+      .insert({ code: `X${String(n).slice(-5)}`, name: 'Extra required area', is_required: true, sort_order: 999 }).select('id').single()).id;
+    try {
+      const r1 = must(await sup.client.rpc('admin_recheck_credentials'));
+      expect(r1.ok).toBe(true);
+      expect(r1.changed_user_ids).toContain(m.id);
+      expect(must(await m.client.from('credentials').select('status').eq('user_id', m.id).single()).status).toBe('inactive');
+    } finally {
+      expect(must(await sup.client.rpc('admin_delete_area', { p_id: extra }))).toMatchObject({ result: 'deleted' });
+    }
+    const r2 = must(await sup.client.rpc('admin_recheck_credentials'));
+    expect(r2.changed_user_ids).toContain(m.id);
+    expect(must(await m.client.from('credentials').select('status').eq('user_id', m.id).single()).status).toBe('active');
+    const plain = await member();
+    expect(must(await plain.client.rpc('admin_recheck_credentials'))).toMatchObject({ error: 'forbidden' });
   });
 });

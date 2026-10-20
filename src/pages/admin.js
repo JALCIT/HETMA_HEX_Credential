@@ -67,6 +67,8 @@ async function uploads(body) {
 
 function reviewUpload(r, after) {
   const own = r.user_id === me.id;
+  const selfReview = own && me.role === 'super_admin';  // admins' own uploads need someone else
+  const blockBtn = own ? '' : `<button class="btn link-btn" type="button" id="rv-block">${r.upload_blocked ? 'Resume uploads for this member' : 'Pause uploads for this member'}</button>`;
   const m = openModal(r.area_name, `${r.member_name || 'Unnamed member'} · ${TIER[r.membership_tier]}`, `
     <dl class="dl">
       <dt>Provider</dt><dd>${esc(r.provider_name || '')}</dd>
@@ -79,16 +81,17 @@ function reviewUpload(r, after) {
       <dt>Mighty member</dt><dd>${r.mighty_member_id ? esc(r.mighty_member_id) : '—'}</dd>
     </dl>
     <button class="btn" type="button" id="rv-file">${icon('file')}Open certificate</button>
-    ${own ? '<p class="notice warn">This is your own upload. Another admin has to review it.</p>' : r.status === 'active' ? `
+    ${selfReview ? '<p class="notice">This is your own upload. As a super admin you can review it; the audit log marks it as a self-review.</p>' : ''}
+    ${own && !selfReview ? '<p class="notice warn">This is your own upload. Another admin has to review it.</p>' : r.status === 'active' ? `
       <label for="rv-reason">Reason (shown to the member if you revoke)</label>
       <textarea id="rv-reason" maxlength="1000" placeholder="For example: The provider has no record of this certificate."></textarea>
       <p class="form-error" id="rv-error" hidden></p>
       <div class="actions">
-        <button class="btn link-btn" type="button" id="rv-block">${r.upload_blocked ? 'Resume uploads for this member' : 'Pause uploads for this member'}</button>
+        ${blockBtn}
         <button class="btn danger" type="button" id="rv-revoke">Revoke</button>
         ${r.verified_at ? '' : '<button class="btn good" type="button" id="rv-verify">Mark verified</button>'}
       </div>` : `
-      <div class="actions"><button class="btn link-btn" type="button" id="rv-block">${r.upload_blocked ? 'Resume uploads for this member' : 'Pause uploads for this member'}</button>
+      <div class="actions">${blockBtn}
       <button class="btn" type="button" id="rv-restore">Restore upload</button></div>`}`, { wide: true });
   const err = msg => { const e = m.querySelector('#rv-error'); if (e) { e.textContent = msg; e.hidden = !msg; } else toast(msg, 'error'); };
   m.querySelector('#rv-file').addEventListener('click', () => openSigned(() => fileUrl(r.file_path)).catch(e => toast(e.message, 'error')));
@@ -177,24 +180,49 @@ async function areas(body) {
     q(supabase.from('provider_areas').select('*')),
   ]);
   const provNames = areaId => links.filter(l => l.area_id === areaId).map(l => providers.find(p => p.id === l.provider_id)?.name).filter(Boolean);
+  const areaCount = provId => links.filter(l => l.provider_id === provId && list.some(a => a.id === l.area_id && a.is_active)).length;
+  const required = list.filter(a => a.is_active && a.is_required).length;
   body.innerHTML = `
-    <div class="toolbar"><button class="btn primary" type="button" id="area-new">${icon('plus')}Add area</button><button class="btn" type="button" id="prov-new">${icon('plus')}Add provider</button></div>
-    <p class="fine">Members need an upload in every <b>required, active</b> area to earn the credential. Changing the list re-checks members the next time they upload or sign in. Every change is in the audit log.</p>
+    <div class="toolbar"><button class="btn primary" type="button" id="area-new">${icon('plus')}Add area</button></div>
+    <p class="fine">Members need an upload in every <b>required, active</b> area to earn the credential (currently <b>${required}</b>). After any change here, everyone’s credential is re-checked and Mighty badges are updated. Every change is in the audit log.</p>
     <div class="table-wrap"><table class="data">
       <thead><tr><th>Code</th><th>Area</th><th>Providers</th><th>Required</th><th>Active</th><th></th></tr></thead>
       <tbody>${list.map(a => `<tr class="${a.is_active ? '' : 'muted'}">
         <td class="mono">${esc(a.code)}</td><td><b>${esc(a.name)}</b><div class="fine">${esc(a.description || '')}</div></td>
         <td class="fine">${esc(provNames(a.id).join(', ') || 'Any provider')}</td>
         <td>${a.is_required ? 'Yes' : 'Optional'}</td><td>${a.is_active ? 'Yes' : 'Hidden'}</td>
-        <td><button class="btn small" type="button" data-edit="${esc(a.id)}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+        <td><button class="btn small" type="button" data-edit="${esc(a.id)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="6" class="fine">No areas yet.</td></tr>'}</tbody></table></div>
+
+    <h2 class="section-title">Providers</h2>
+    <div class="toolbar"><button class="btn" type="button" id="prov-new">${icon('plus')}Add provider</button></div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Provider</th><th>Website</th><th>Linked areas</th><th>Active</th><th></th></tr></thead>
+      <tbody>${providers.map(p => `<tr class="${p.is_active ? '' : 'muted'}">
+        <td><b>${esc(p.name)}</b></td><td class="fine">${p.website_url ? esc(p.website_url) : '—'}</td>
+        <td>${areaCount(p.id)}</td><td>${p.is_active ? 'Yes' : 'Hidden'}</td>
+        <td><button class="btn small" type="button" data-prov="${esc(p.id)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="5" class="fine">No providers yet.</td></tr>'}</tbody></table></div>`;
   const reload = () => areas(body);
   body.querySelector('#area-new').addEventListener('click', () => editArea(null, providers, links, reload));
-  body.querySelector('#prov-new').addEventListener('click', () => newProvider(reload));
+  body.querySelector('#prov-new').addEventListener('click', () => editProvider(null, reload));
   body.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => editArea(list.find(a => a.id === b.dataset.edit), providers, links, reload)));
+  body.querySelectorAll('[data-prov]').forEach(b => b.addEventListener('click', () => editProvider(providers.find(p => p.id === b.dataset.prov), reload)));
+}
+
+// Completion depends on the list of areas, so re-check everyone and update the
+// Mighty badge for anyone whose credential changed.
+async function recheckAll() {
+  const r = await rpc('admin_recheck_credentials');
+  if (!r?.ok) return ' Couldn’t re-check credentials; they’ll update when members next sign in.';
+  const ids = r.changed_user_ids || [];
+  if (!ids.length) return '';
+  let failed = 0;
+  for (const id of ids) { const s = await syncBadge(id); if (!s?.ok) failed++; }
+  return ` ${ids.length} member${ids.length === 1 ? '’s' : 's’'} credential changed${failed ? `; ${failed} Mighty badge update${failed === 1 ? '' : 's'} failed (retry from the Members tab)` : ' and Mighty badges were updated'}.`;
 }
 
 function editArea(a, providers, links, after) {
   const chosen = new Set(a ? links.filter(l => l.area_id === a.id).map(l => l.provider_id) : []);
+  const sup = me.role === 'super_admin';
   const m = openModal(a ? `Edit ${a.name}` : 'Add competency area', '', `
     <form id="area-form" class="form" novalidate>
       <div class="row2"><div><label for="ar-code">Code</label><input id="ar-code" name="code" maxlength="8" required value="${esc(a?.code || '')}" ${a ? 'readonly' : ''} placeholder="NET"></div>
@@ -204,12 +232,15 @@ function editArea(a, providers, links, after) {
       <label class="check"><input type="checkbox" name="required" ${!a || a.is_required ? 'checked' : ''}> Required for the credential</label>
       <label class="check"><input type="checkbox" name="active" ${!a || a.is_active ? 'checked' : ''}> Active (shown to members)</label>
       <fieldset><legend>Approved providers for this area</legend><div class="checks">
-        ${providers.filter(p => p.is_active).map(p => `<label class="check"><input type="checkbox" name="prov" value="${esc(p.id)}" ${chosen.has(p.id) ? 'checked' : ''}> ${esc(p.name)}</label>`).join('')}
+        ${providers.filter(p => p.is_active || chosen.has(p.id)).map(p => `<label class="check"><input type="checkbox" name="prov" value="${esc(p.id)}" ${chosen.has(p.id) ? 'checked' : ''}> ${esc(p.name)}${p.is_active ? '' : ' (hidden)'}</label>`).join('')}
       </div><p class="fine">Leave all unchecked to allow any listed provider. Members can always pick “Other”.</p></fieldset>
       <p class="form-error" id="ar-error" hidden></p>
-      <div class="actions"><button type="button" class="btn ghost" data-cancel>Cancel</button><button type="submit" class="btn primary">Save</button></div>
+      <div class="actions">
+        ${a && sup ? '<button type="button" class="btn danger" id="ar-delete">Delete area</button>' : ''}
+        <button type="button" class="btn ghost" data-cancel>Cancel</button><button type="submit" class="btn primary">Save</button></div>
     </form>`, { wide: true });
   const form = m.querySelector('#area-form');
+  const showErr = msg => { const el = form.querySelector('#ar-error'); el.textContent = msg; el.hidden = !msg; };
   form.addEventListener('submit', e => {
     e.preventDefault();
     busy(form.querySelector('button[type=submit]'), async () => {
@@ -223,25 +254,66 @@ function editArea(a, providers, links, after) {
         const remove = [...chosen].filter(p => !want.has(p));
         if (add.length) await q(supabase.from('provider_areas').insert(add));
         if (remove.length) await q(supabase.from('provider_areas').delete().eq('area_id', id).in('provider_id', remove));
-        closeModal(); toast('Saved.'); after();
-      } catch (err) { const el = form.querySelector('#ar-error'); el.textContent = err.code === '23514' ? 'Codes are 2–8 capital letters or digits, and names can’t be empty.' : err.message; el.hidden = false; }
+        const affects = !a || a.is_required !== values.is_required || a.is_active !== values.is_active;
+        const note = affects ? await recheckAll() : '';
+        closeModal(); toast('Saved.' + note); after();
+      } catch (err) { showErr(err.code === '23514' ? 'Codes are 2–8 capital letters or digits, and names can’t be empty.' : err.code === '23505' ? 'Another area already uses that code.' : err.message); }
     });
+  });
+  form.querySelector('#ar-delete')?.addEventListener('click', ev => {
+    const btn = ev.currentTarget;
+    if (btn.dataset.confirm !== '1') {
+      btn.dataset.confirm = '1'; btn.textContent = 'Click again to delete';
+      return showErr(`Delete “${a.name}”? If members have already uploaded certificates for it, it will be hidden instead, so their records and files are kept.`);
+    }
+    busy(btn, async () => {
+      const r = await rpc('admin_delete_area', { p_id: a.id });
+      if (!r.ok) return showErr(r.message);
+      const note = await recheckAll();
+      closeModal();
+      toast((r.result === 'deleted' ? `${a.name} was deleted.` : `${a.name} has uploads, so it was hidden instead of deleted. It no longer counts toward the credential.`) + note);
+      after();
+    }, 'Deleting…');
   });
 }
 
-function newProvider(after) {
-  const m = openModal('Add provider', 'Then link it to areas from each area’s Edit screen.', `
-    <form id="pv-form" class="form" novalidate><label for="pv-name">Provider name</label><input id="pv-name" name="name" maxlength="120" required>
-    <label for="pv-url">Website (optional)</label><input id="pv-url" name="url" type="url" placeholder="https://">
+function editProvider(p, after) {
+  const sup = me.role === 'super_admin';
+  const m = openModal(p ? `Edit ${p.name}` : 'Add provider', p ? '' : 'Then link it to areas from each area’s Edit screen.', `
+    <form id="pv-form" class="form" novalidate><label for="pv-name">Provider name</label><input id="pv-name" name="name" maxlength="120" required value="${esc(p?.name || '')}">
+    <label for="pv-url">Website (optional)</label><input id="pv-url" name="url" type="url" placeholder="https://" value="${esc(p?.website_url || '')}">
+    ${p ? `<label class="check"><input type="checkbox" name="active" ${p.is_active ? 'checked' : ''}> Active (members can pick it)</label>` : ''}
     <p class="form-error" id="pv-error" hidden></p>
-    <div class="actions"><button type="button" class="btn ghost" data-cancel>Cancel</button><button type="submit" class="btn primary">Add</button></div></form>`);
+    <div class="actions">
+      ${p && sup ? '<button type="button" class="btn danger" id="pv-delete">Delete provider</button>' : ''}
+      <button type="button" class="btn ghost" data-cancel>Cancel</button><button type="submit" class="btn primary">${p ? 'Save' : 'Add'}</button></div></form>`);
   const form = m.querySelector('#pv-form');
+  const showErr = msg => { const el = form.querySelector('#pv-error'); el.textContent = msg; el.hidden = !msg; };
+  const friendly = err => err.code === '23505' ? 'There’s already a provider with that name.' : err.code === '23514' ? 'Enter a name, and a website starting with https:// (or leave it blank).' : err.message;
   form.addEventListener('submit', e => {
     e.preventDefault();
     busy(form.querySelector('button[type=submit]'), async () => {
-      try { await q(supabase.from('providers').insert({ name: form.name.value.trim(), website_url: form.url.value.trim() || null })); closeModal(); toast('Provider added.'); after(); }
-      catch (err) { const el = form.querySelector('#pv-error'); el.textContent = err.message; el.hidden = false; }
+      const values = { name: form.name.value.trim(), website_url: form.url.value.trim() || null };
+      try {
+        if (p) await q(supabase.from('providers').update({ ...values, is_active: form.active.checked }).eq('id', p.id));
+        else await q(supabase.from('providers').insert(values));
+        closeModal(); toast(p ? 'Saved.' : 'Provider added.'); after();
+      } catch (err) { showErr(friendly(err)); }
     });
+  });
+  form.querySelector('#pv-delete')?.addEventListener('click', ev => {
+    const btn = ev.currentTarget;
+    if (btn.dataset.confirm !== '1') {
+      btn.dataset.confirm = '1'; btn.textContent = 'Click again to delete';
+      return showErr(`Delete “${p.name}”? If members have uploaded certificates from it, it will be hidden instead, so their records keep the provider’s name.`);
+    }
+    busy(btn, async () => {
+      const r = await rpc('admin_delete_provider', { p_id: p.id });
+      if (!r.ok) return showErr(r.message);
+      closeModal();
+      toast(r.result === 'deleted' ? `${p.name} was deleted.` : `${p.name} has uploads, so it was hidden instead of deleted.`);
+      after();
+    }, 'Deleting…');
   });
 }
 

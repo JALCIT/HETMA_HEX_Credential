@@ -31,10 +31,10 @@ export function loadConfig(env) {
     revokeUrl: env.MIGHTY_REVOKE_URL || `${issuer}/oauth/revoke`,
     joinUrl: env.MIGHTY_JOIN_URL || `${issuer}/users/onboarding/plans?auto_join=true`,
     apiBase: (env.MIGHTY_API_BASE || 'https://api.mn.co').replace(/\/+$/, ''),
-    network: env.MIGHTY_NETWORK || '',
-    clientId: env.MIGHTY_CLIENT_ID || '',
-    clientSecret: env.MIGHTY_CLIENT_SECRET || '',
-    adminKey: env.MIGHTY_ADMIN_API_KEY || '',
+    network: String(env.MIGHTY_NETWORK || '').trim(),
+    clientId: String(env.MIGHTY_CLIENT_ID || '').trim(),
+    clientSecret: String(env.MIGHTY_CLIENT_SECRET || '').trim(),
+    adminKey: String(env.MIGHTY_ADMIN_API_KEY || '').trim(),
     badgeId: String(env.MIGHTY_BADGE_ID || '').trim(),
     planGeneral: String(env.MIGHTY_PLAN_GENERAL || '1736546'),
     planHigherEd: String(env.MIGHTY_PLAN_HIGHER_ED || '1819684'),
@@ -66,7 +66,12 @@ function cookie(cfg, name, value, maxAge) {
 const redirect = (location, headers = {}) =>
   new Response(null, { status: 302, headers: { Location: location, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', ...headers } });
 
-const appRedirect = (cfg, route, extraHeaders) => redirect(`${cfg.appUrl}/#${route}`, extraHeaders);
+// Failed sign-ins are logged (route only: error code, never codes or secrets) so they
+// can be diagnosed from Supabase → Edge Functions → Logs.
+const appRedirect = (cfg, route, extraHeaders) => {
+  if (route.includes('error=')) console.log(`mighty-auth: sign-in ended with ${route}`);
+  return redirect(`${cfg.appUrl}/#${route}`, extraHeaders);
+};
 
 // One cookie per sign-in attempt, so two tabs signing in at once don't collide.
 const cookieName = state => `hc_mo_${String(state).replace(/[^A-Za-z0-9]/g, '').slice(0, 16)}`;
@@ -190,6 +195,7 @@ async function begin(cfg, db, mode, url) {
 async function callback(cfg, db, req, url, f) {
   const p = url.searchParams;
   const clear = { 'Set-Cookie': cookie(cfg, cookieName(p.get('state') || ''), '', 0) };
+  if (p.get('error')) console.log(`mighty-auth: Mighty returned error=${String(p.get('error')).slice(0, 60)} ${String(p.get('error_description') || '').slice(0, 200)}`);
   if (p.get('error')) return appRedirect(cfg, `/signin?error=${p.get('error') === 'access_denied' ? 'denied' : 'mighty_error'}`, clear);
   const code = p.get('code'), state = p.get('state'), iss = p.get('iss');
   if (!code || !state) return appRedirect(cfg, '/signin?error=invalid_request', clear);
@@ -210,9 +216,18 @@ async function callback(cfg, db, req, url, f) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json', 'User-Agent': UA },
       body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: cfg.callbackUrl, client_id: cfg.clientId, client_secret: cfg.clientSecret, code_verifier: tx.code_verifier }),
     });
-    if (!res.ok) return appRedirect(cfg, '/signin?error=token_exchange', clear);
+    if (!res.ok) {
+      // Mighty's error reply (e.g. invalid_client / invalid_grant) never contains our secret.
+      const detail = (await res.text().catch(() => '')).slice(0, 300);
+      console.log(`mighty-auth: token exchange failed: HTTP ${res.status} ${detail}`);
+      await audit(db, 'signin_token_exchange_failed', null, { status: res.status, detail: detail.slice(0, 200) });
+      return appRedirect(cfg, '/signin?error=token_exchange', clear);
+    }
     tokens = await res.json();
-  } catch { return appRedirect(cfg, '/signin?error=unavailable', clear); }
+  } catch (e) {
+    console.log(`mighty-auth: token exchange error: ${e.message}`);
+    return appRedirect(cfg, '/signin?error=unavailable', clear);
+  }
 
   // Who signed in? (Mighty API, acting as the member.)
   let me;
@@ -220,15 +235,19 @@ async function callback(cfg, db, req, url, f) {
     const res = await f(`${cfg.apiBase}/networks/${encodeURIComponent(cfg.network)}/graphql`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': UA },
-      body: JSON.stringify({ query: 'query { me { id name } }' }),
+      // `id` is a Relay global ID; `resourceId` is the numeric member ID the Admin API uses.
+      body: JSON.stringify({ query: 'query { me { resourceId name } }' }),
     });
-    me = (await res.json())?.data?.me;
-  } catch { me = null; }
+    const out = await res.json().catch(() => null);
+    me = out?.data?.me || null;
+    if (!me) console.log(`mighty-auth: me query failed: HTTP ${res.status} ${JSON.stringify(out?.errors || out || '').slice(0, 300)}`);
+  } catch (e) { me = null; console.log(`mighty-auth: me query error: ${e.message}`); }
   // We only needed the identity: hand the tokens straight back to Mighty.
   await Promise.allSettled([tokens.access_token, tokens.refresh_token].filter(Boolean).map(token =>
     f(cfg.revokeUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
       body: new URLSearchParams({ token, client_id: cfg.clientId, client_secret: cfg.clientSecret }) })));
-  const mightyId = me && /^[0-9]{1,18}$/.test(String(me.id)) ? String(me.id) : null;
+  const mightyId = me && /^[0-9]{1,18}$/.test(String(me.resourceId)) ? String(me.resourceId) : null;
+  if (me && !mightyId) console.log(`mighty-auth: unexpected resourceId format (${typeof me.resourceId}, length ${String(me.resourceId ?? '').length})`);
   if (!mightyId) return appRedirect(cfg, '/signin?error=no_identity', clear);
   const name = String(me.name || '').trim().slice(0, 120);
 
@@ -259,6 +278,7 @@ async function callback(cfg, db, req, url, f) {
   try {
     const t = await lookupTier(cfg, f, mightyId);
     if (t.tier) Object.assign(update, { membership_tier: t.tier, tier_checked_at: new Date().toISOString() });
+    if (t.tier === 'none') console.log(`mighty-auth: no General/Higher Ed plan for member; plan IDs returned: ${(t.planIds || []).join(',') || '(none)'}`);
     else if (t.reason !== 'not_configured') await audit(db, 'tier_lookup_failed', prof.id, { reason: t.reason });
   } catch (e) { await audit(db, 'tier_lookup_failed', prof.id, { reason: String(e.message).slice(0, 200) }); }
   await db.from('profiles').update(update).eq('id', prof.id);
