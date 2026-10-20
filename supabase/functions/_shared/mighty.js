@@ -11,13 +11,20 @@
 
 const enc = new TextEncoder();
 
+// Newer Supabase projects may turn off the legacy service-role key and expose the
+// new secret keys as a JSON dictionary instead ({"default": "sb_secret_..."}).
+function secretKeyFrom(json) {
+  try { const keys = JSON.parse(json || '{}'); return keys.default || Object.values(keys)[0] || ''; }
+  catch { return ''; }
+}
+
 export function loadConfig(env) {
   const issuer = (env.MIGHTY_ISSUER || 'https://community.hetma.org').replace(/\/+$/, '');
   const supabaseUrl = (env.SUPABASE_URL || '').replace(/\/+$/, '');
   return {
     appUrl: (env.APP_URL || '').replace(/\/+$/, ''),
     supabaseUrl,
-    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY || '',
+    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY || secretKeyFrom(env.SUPABASE_SECRET_KEYS),
     issuer,
     authorizeUrl: env.MIGHTY_AUTHORIZE_URL || `${issuer}/oauth/authorize`,
     tokenUrl: env.MIGHTY_TOKEN_URL || `${issuer}/oauth/token`,

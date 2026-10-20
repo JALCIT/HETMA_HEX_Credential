@@ -62,21 +62,25 @@ npx supabase functions deploy credential-sync
 
 ## 5. Add the function secrets
 
+> **Done (Oct 20):** `APP_URL`, `MIGHTY_NETWORK`, `MIGHTY_CLIENT_ID`, `MIGHTY_BADGE_ID` are set. **Still to add yourself:** `MIGHTY_CLIENT_SECRET` and `MIGHTY_ADMIN_API_KEY`.
+
 Supabase → **Edge Functions → Secrets** → add each one (typing them here keeps them out of files and command history):
 
 | Name | Value |
 |---|---|
-| `APP_URL` | Your Vercel site address from step 6, e.g. `https://hetma-credential.vercel.app` (no trailing slash). Fill in after step 6. |
+| `APP_URL` | `https://hetma-hex-credential.vercel.app` (no trailing slash) |
 | `MIGHTY_NETWORK` | `6821587` |
 | `MIGHTY_CLIENT_ID` | `_KnqBPqFFhIgohk8Tjboodj6CB29shemC_F6fciCkN4` |
 | `MIGHTY_CLIENT_SECRET` | From step 3.1 (**secret**) |
 | `MIGHTY_ADMIN_API_KEY` | From step 3.2 (**secret**) |
 | `MIGHTY_BADGE_ID` | `25410134` |
 
-Already set by Supabase, don't add: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+Already set by Supabase, don't add: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEYS` on newer projects; the functions use either).
 Optional, with defaults already right for HETMA: `MIGHTY_ISSUER` (`https://community.hetma.org`), `MIGHTY_PLAN_GENERAL` (`1736546`), `MIGHTY_PLAN_HIGHER_ED` (`1819684`).
 
 ## 6. Put the site on Vercel
+
+> **Done (Oct 20):** Vercel project `hetma-hex-credential` (team "jalcit's projects"), live at **https://hetma-hex-credential.vercel.app**. Every push to `main` redeploys it. Supabase Site URL is set to the same address.
 
 1. vercel.com → **Add New → Project** → import the `JALCIT/HETMA_HEX_Credential` repository. Framework: Vite (detected).
 2. Environment variables:
