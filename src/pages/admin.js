@@ -186,12 +186,12 @@ async function areas(body) {
     <div class="toolbar"><button class="btn primary" type="button" id="area-new">${icon('plus')}Add area</button></div>
     <p class="fine">Members need an upload in every <b>required, active</b> area to earn the credential (currently <b>${required}</b>). After any change here, everyone’s credential is re-checked and Mighty badges are updated. Every change is in the audit log.</p>
     <div class="table-wrap"><table class="data">
-      <thead><tr><th>Code</th><th>Area</th><th>Providers</th><th>Required</th><th>Active</th><th></th></tr></thead>
+      <thead><tr><th>Area</th><th>Providers</th><th>Required</th><th>Active</th><th></th></tr></thead>
       <tbody>${list.map(a => `<tr class="${a.is_active ? '' : 'muted'}">
-        <td class="mono">${esc(a.code)}</td><td><b>${esc(a.name)}</b><div class="fine">${esc(a.description || '')}</div></td>
+        <td><b>${esc(a.name)}</b><div class="fine">${esc(a.description || '')}</div></td>
         <td class="fine">${esc(provNames(a.id).join(', ') || 'Any provider')}</td>
         <td>${a.is_required ? 'Yes' : 'Optional'}</td><td>${a.is_active ? 'Yes' : 'Hidden'}</td>
-        <td><button class="btn small" type="button" data-edit="${esc(a.id)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="6" class="fine">No areas yet.</td></tr>'}</tbody></table></div>
+        <td><button class="btn small" type="button" data-edit="${esc(a.id)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="5" class="fine">No areas yet.</td></tr>'}</tbody></table></div>
 
     <h2 class="section-title">Providers</h2>
     <div class="toolbar"><button class="btn" type="button" id="prov-new">${icon('plus')}Add provider</button></div>
@@ -225,10 +225,10 @@ function editArea(a, providers, links, after) {
   const sup = me.role === 'super_admin';
   const m = openModal(a ? `Edit ${a.name}` : 'Add competency area', '', `
     <form id="area-form" class="form" novalidate>
-      <div class="row2"><div><label for="ar-code">Code</label><input id="ar-code" name="code" maxlength="8" required value="${esc(a?.code || '')}" ${a ? 'readonly' : ''} placeholder="NET"></div>
-      <div><label for="ar-order">Order</label><input id="ar-order" name="order" type="number" value="${esc(a?.sort_order ?? 100)}"></div></div>
       <label for="ar-name">Name</label><input id="ar-name" name="name" maxlength="120" required value="${esc(a?.name || '')}">
       <label for="ar-desc">Description</label><textarea id="ar-desc" name="description" maxlength="1000">${esc(a?.description || '')}</textarea>
+      <label for="ar-order">Position in the list</label><input id="ar-order" name="order" type="number" value="${esc(a?.sort_order ?? 100)}">
+      <p class="fine">Lower numbers appear first (for example 10, 20, 30).</p>
       <label class="check"><input type="checkbox" name="required" ${!a || a.is_required ? 'checked' : ''}> Required for the credential</label>
       <label class="check"><input type="checkbox" name="active" ${!a || a.is_active ? 'checked' : ''}> Active (shown to members)</label>
       <fieldset><legend>Approved providers for this area</legend><div class="checks">
@@ -248,7 +248,7 @@ function editArea(a, providers, links, after) {
       try {
         let id = a?.id;
         if (a) await q(supabase.from('competency_areas').update(values).eq('id', a.id));
-        else id = (await q(supabase.from('competency_areas').insert({ ...values, code: form.code.value.trim().toUpperCase() }).select('id').single())).id;
+        else id = (await q(supabase.from('competency_areas').insert(values).select('id').single())).id;
         const want = new Set([...form.querySelectorAll('input[name=prov]:checked')].map(i => i.value));
         const add = [...want].filter(p => !chosen.has(p)).map(provider_id => ({ provider_id, area_id: id }));
         const remove = [...chosen].filter(p => !want.has(p));
@@ -257,7 +257,7 @@ function editArea(a, providers, links, after) {
         const affects = !a || a.is_required !== values.is_required || a.is_active !== values.is_active;
         const note = affects ? await recheckAll() : '';
         closeModal(); toast('Saved.' + note); after();
-      } catch (err) { showErr(err.code === '23514' ? 'Codes are 2–8 capital letters or digits, and names can’t be empty.' : err.code === '23505' ? 'Another area already uses that code.' : err.message); }
+      } catch (err) { showErr(err.code === '23514' ? 'Enter a name for the area.' : err.message); }
     });
   });
   form.querySelector('#ar-delete')?.addEventListener('click', ev => {
