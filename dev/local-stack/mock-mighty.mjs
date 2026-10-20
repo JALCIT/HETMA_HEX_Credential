@@ -108,12 +108,12 @@ http.createServer(async (req, res) => {
       return send(res, 200, { items: m.plans.map(id => ({ id, name: id === GENERAL ? 'HETMA (General)' : 'HETMA (Higher Ed Hub)' })) });
     }
     badges[mid] ||= new Set();
-    if (what === 'badges' && req.method === 'GET' && !badgeId) return send(res, 200, { items: [...badges[mid]].map(id => ({ id, title: 'HETMA Credential' })) });
+    if (what === 'badges' && req.method === 'GET' && !badgeId) return send(res, 200, { items: [...badges[mid]].map(id => ({ id, title: 'HEx Credential' })) });
     if (what === 'badges' && req.method === 'POST') {
       const { badge_id } = JSON.parse(await body(req) || '{}');
       if (!badge_id) return send(res, 422, { error: 'badge_id required' });
       badges[mid].add(Number(badge_id));
-      return send(res, 201, { id: Number(badge_id), title: 'HETMA Credential' });
+      return send(res, 201, { id: Number(badge_id), title: 'HEx Credential' });
     }
     if (what === 'badges' && req.method === 'DELETE' && badgeId) {
       if (!badges[mid].delete(Number(badgeId))) return send(res, 404, { error: 'Badge not found' });

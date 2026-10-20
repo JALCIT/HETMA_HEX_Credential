@@ -1,16 +1,17 @@
-# HETMA Credential — project brief for Claude
+# HEx Credential — project brief for Claude
 
 Read this first in every session. Last updated: 2026-10-20.
 
 ## What this is
 
-A standalone **test site** for the HETMA Credential. HETMA community members sign in with their Mighty account (community.hetma.org), upload vendor training certificates for each competency area, and earn the HETMA Credential: a Mighty badge plus a public credential page. Honor system: uploads count once the member attests they're genuine; admins audit, verify and revoke.
+A standalone **test site** for the HEx Credential. HETMA community members sign in with their Mighty account (community.hetma.org), upload vendor training certificates for each competency area, and earn the HEx Credential: a Mighty badge plus a public credential page. Honor system: uploads count once the member attests they're genuine; admins audit, verify and revoke.
 
 It's built to move into the **HETMA Event Passport** later (same stack, same conventions: Vite + vanilla JS, Supabase, Vercel, RLS + definer functions, audit log, local Docker-free stack). Keep it that way.
 
 - **Owner:** Dustin Myers. Repo: `JALCIT/HETMA_HEX_Credential`, local folder `HETMA_HEX_Credential` (GitHub Desktop).
 - **Brand:** navy `#143649`, lime `#E0F08A`, Barlow + Barlow Condensed.
-- **Wording:** "credential" / "HETMA Credential". Never "certification" or "certified". Vendor documents are "certificates".
+- **Wording:** "credential" / "HEx Credential". Never "certification" or "certified". Vendor documents are "certificates".
+- **Test setup (Oct 20):** Supabase project `hetma-credential-test` (ref `mjjfdqwzxjqtfseamhsg`); Mighty OAuth app "HETMA Credential (test)" (Client ID `_KnqBPqFFhIgohk8Tjboodj6CB29shemC_F6fciCkN4`); Network ID `6821587`; badge "HEx Credential" ID `25410134`. The community has a "HEx Credential" space under Resources.
 - **Mighty facts:** issuer `https://community.hetma.org`; plans General `1736546`, Higher Ed Hub `1819684`; Admin API base `https://api.mn.co/admin/v1/networks/{network}`.
 
 ## Ground rules (non-negotiable)
@@ -22,7 +23,7 @@ It's built to move into the **HETMA Event Passport** later (same stack, same con
 5. **Every staff action is audited** (`private.audit(...)`); areas/providers have the `audit_changes` trigger.
 6. **Database changes = a new migration** in `supabase/migrations/` (`YYYYMMDDHHMM00_name.sql`, next number). Never edit an applied migration. Re-grant execute on any new function explicitly (the RPC migration revokes everything by default). Then regenerate `supabase/setup-all-migrations.sql`:
    ```bash
-   { printf -- "-- HETMA Credential: complete database setup (all migrations, in order).\n-- Paste into Supabase -> SQL Editor -> Run, ONCE on a new, empty project. No demo data, no secrets.\n-- Then paste supabase/seed.sql for the starting list of competency areas and providers.\n\n"; for f in supabase/migrations/*.sql; do echo "-- ===== $(basename $f) ====="; cat "$f"; echo; done; } > supabase/setup-all-migrations.sql
+   { printf -- "-- HEx Credential: complete database setup (all migrations, in order).\n-- Paste into Supabase -> SQL Editor -> Run, ONCE on a new, empty project. No demo data, no secrets.\n-- Then paste supabase/seed.sql for the starting list of competency areas and providers.\n\n"; for f in supabase/migrations/*.sql; do echo "-- ===== $(basename $f) ====="; cat "$f"; echo; done; } > supabase/setup-all-migrations.sql
    ```
 7. Business errors return `{ ok:false, error, message }` instead of raising.
 8. Ask the owner before anything destructive on the hosted project.

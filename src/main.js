@@ -1,4 +1,4 @@
-// HETMA Credential — app shell and router (hash routes, no framework).
+// HEx Credential — app shell and router (hash routes, no framework).
 //   #/            -> your progress (or sign-in when signed out)
 //   #/signin      -> Sign in with Mighty / Join HETMA
 //   #/auth?th=... -> finishes a Mighty sign-in (one-time token from mighty-auth)
@@ -27,9 +27,9 @@ function renderSignIn(params) {
   const local = config.appEnv === 'development';
   shell(`
     <section class="hero">
-      <p class="eyebrow">HETMA Credential</p>
+      <p class="eyebrow">HEx Credential</p>
       <h1>Show the training behind your work.</h1>
-      <p class="lede">Upload certificates from approved training providers across the HETMA competency areas. When every area is covered, you earn the HETMA Credential, a badge on your community profile and a page you can add to LinkedIn.</p>
+      <p class="lede">Upload certificates from approved training providers across the HETMA competency areas. When every area is covered, you earn the HEx Credential, a badge on your community profile and a page you can add to LinkedIn.</p>
       ${err ? `<div class="notice error" role="alert">${icon('info')}<span>${esc(SIGNIN_ERRORS[err] || 'Sign-in didn’t finish. Try again.')}</span></div>` : ''}
       <div class="signin-actions">
         <button type="button" class="btn primary big" id="signin-mighty" data-mode="start">Sign in with your HETMA community account</button>
@@ -40,7 +40,7 @@ function renderSignIn(params) {
     <section class="how">
       <div><span class="step">1</span><h3>Train</h3><p>Complete courses from manufacturers and training providers in each competency area.</p></div>
       <div><span class="step">2</span><h3>Upload</h3><p>Upload each certificate and confirm it’s genuine. It counts right away.</p></div>
-      <div><span class="step">3</span><h3>Share</h3><p>Earn the HETMA Credential and share your public credential page.</p></div>
+      <div><span class="step">3</span><h3>Share</h3><p>Earn the HEx Credential and share your public credential page.</p></div>
     </section>`);
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;

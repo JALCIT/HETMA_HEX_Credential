@@ -43,18 +43,18 @@ function draw(page, user, me, params) {
       <section class="earned" aria-label="Credential earned">
         <div class="earned-head"><img src="/assets/hetma-logo.svg" alt="" width="52" height="52"><div>
           <p class="eyebrow">Credential earned ${fmtDate(credential.earned_at)}</p>
-          <h2>You’ve earned the HETMA Credential</h2></div></div>
+          <h2>You’ve earned the HEx Credential</h2></div></div>
         <p>Your HETMA badge is on your community profile. Share your credential page, or add it to LinkedIn: <b>Add profile section → Licenses &amp; certifications</b>, with <b>HETMA</b> as the issuing organization, <b>${esc(credentialId(credential.slug, credential.earned_at))}</b> as the credential ID and the link below as the credential URL.</p>
         <div class="copyrow"><code id="cred-url">${esc(publicUrl)}</code>
           <button class="btn" type="button" data-copy>${icon('share')}Copy link</button>
           <a class="btn ghost" href="#/c/${esc(credential.slug)}">View page</a></div>
       </section>` : credential?.status === 'inactive' ? `
-      <div class="notice warn">${icon('info')}<span>Your HETMA Credential is no longer active because an upload was revoked or expired. Upload the missing areas to restore it.</span></div>` : ''}
+      <div class="notice warn">${icon('info')}<span>Your HEx Credential is no longer active because an upload was revoked or expired. Upload the missing areas to restore it.</span></div>` : ''}
     <section class="progress card">
       ${ring(p.done, p.total)}
       <div class="progress-text">
         <p class="eyebrow">${esc(profile?.full_name || 'Your progress')}${tier ? ` · ${esc(tier)}` : ''}</p>
-        <h1>${active ? 'All areas complete' : p.total - p.done === 1 ? '1 area left to your HETMA Credential' : `${p.total - p.done} areas left to your HETMA Credential`}</h1>
+        <h1>${active ? 'All areas complete' : p.total - p.done === 1 ? '1 area left to your HEx Credential' : `${p.total - p.done} areas left to your HEx Credential`}</h1>
         <div class="chips">
           <span class="chip s-uploaded">${p.done} done</span>
           <span class="chip s-verified">${p.verified} verified by HETMA</span>
@@ -151,7 +151,7 @@ function openUpload(user, me, areaId, done) {
         if (!r.ok) return showErr(r.message);
         closeModal();
         if (r.credential_changed && r.credential_status === 'active') {
-          toast('All areas done. You’ve earned the HETMA Credential!');
+          toast('All areas done. You’ve earned the HEx Credential!');
           syncBadge();
         } else toast(`${area.name} is done. It counts toward your credential now.`);
         done();

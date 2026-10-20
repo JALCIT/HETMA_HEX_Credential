@@ -3,7 +3,7 @@ import { signInAs, uploadArea, noHorizontalOverflow, pdf, MIGHTY } from './helpe
 
 test('a member signs in with Mighty, uploads the missing areas and earns the credential', async ({ page }) => {
   await signInAs(page, 1001); // Jordan Rivera: 7 of 10 done in the demo data
-  await expect(page.getByRole('heading', { name: '3 areas left to your HETMA Credential' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '3 areas left to your HEx Credential' })).toBeVisible();
   await expect(page.getByText('Higher Ed Hub')).toBeVisible();
   await noHorizontalOverflow(page);
 
@@ -18,9 +18,9 @@ test('a member signs in with Mighty, uploads the missing areas and earns the cre
 
   await uploadArea(page, 'SIG');
   await uploadArea(page, 'DES');
-  await expect(page.getByRole('heading', { name: '1 area left to your HETMA Credential' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '1 area left to your HEx Credential' })).toBeVisible();
   await uploadArea(page, 'ADA');
-  await expect(page.getByRole('heading', { name: 'You’ve earned the HETMA Credential' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'You’ve earned the HEx Credential' })).toBeVisible();
   await expect(page.locator('#cred-url')).toContainText('/#/c/');
 
   // The Mighty badge was added (mock records it).
@@ -50,7 +50,7 @@ test('a new person joins HETMA and lands back in the app', async ({ page }) => {
   await page.locator('#continue').click();
   await page.locator('a[data-member="1003"]').click();
   await expect(page.getByText('Welcome to HETMA!')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '10 areas left to your HETMA Credential' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '10 areas left to your HEx Credential' })).toBeVisible();
 });
 
 test('an unknown credential link says so', async ({ page }) => {

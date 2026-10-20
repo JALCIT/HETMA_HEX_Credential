@@ -1,4 +1,4 @@
-# Setting up the HETMA Credential test site
+# Setting up the HEx Credential test site
 
 This puts the app online as a **separate test site**: its own Supabase project, its own Vercel project, its own Mighty sign-in app. Nothing here touches the live Event Passport or its database.
 
@@ -9,7 +9,7 @@ Plan on about an hour the first time. Do the steps in order. Anything marked **s
 The code is already in your `HETMA_HEX_Credential` folder, which GitHub Desktop links to the `JALCIT/HETMA_HEX_Credential` repository.
 
 1. Open GitHub Desktop and select **HETMA_HEX_Credential**. You'll see all the new files as changes.
-2. Commit them to `main` (for example "First version of the HETMA Credential test site"), then **Push origin**.
+2. Commit them to `main` (for example "First version of the HEx Credential test site"), then **Push origin**.
 3. On github.com, check the repository is **private**.
 
 ## 2. Create the Supabase project
@@ -28,16 +28,18 @@ The code is already in your `HETMA_HEX_Credential` folder, which GitHub Desktop 
 
 ## 3. Create the sign-in app in Mighty
 
+> **Done for the test site (Oct 20):** OAuth app "HETMA Credential (test)" (Client ID `_KnqBPqFFhIgohk8Tjboodj6CB29shemC_F6fciCkN4`), Admin API key "HETMA Credential (test) - badges and plans", Network ID `6821587`, badge "HEx Credential" ID `25410134`. The steps below are for reference.
+
 In your Mighty admin (community.hetma.org):
 
 1. **Integrations → OAuth Applications → New OAuth Application**
-   - Name: `HETMA Credential (test)`
+   - Name: `HEx Credential (test)`
    - Client type: **Confidential**
    - Scopes: **read:userinfo** only
    - Redirect URI: `https://<project ref>.supabase.co/functions/v1/mighty-auth/callback`
    - Save. Note the **Client ID** (public) and the **Client Secret** (**secret**).
 2. **Integrations → Admin API**: create a key limited to members and badges. Note the key (**secret**) and your **Network ID**.
-3. **Badges**: create a badge named **HETMA Credential**. Note its **badge ID**. (The Admin API's "Return all badges for the Network" lists IDs if the dashboard doesn't show it.)
+3. **Badges**: create a badge named **HEx Credential**. Note its **badge ID**. (The Admin API's "Return all badges for the Network" lists IDs if the dashboard doesn't show it.)
 
 ## 4. Deploy the two Edge Functions
 
@@ -65,11 +67,11 @@ Supabase → **Edge Functions → Secrets** → add each one (typing them here k
 | Name | Value |
 |---|---|
 | `APP_URL` | Your Vercel site address from step 6, e.g. `https://hetma-credential.vercel.app` (no trailing slash). Fill in after step 6. |
-| `MIGHTY_NETWORK` | Your Mighty Network ID (from step 3.2) |
-| `MIGHTY_CLIENT_ID` | From step 3.1 |
+| `MIGHTY_NETWORK` | `6821587` |
+| `MIGHTY_CLIENT_ID` | `_KnqBPqFFhIgohk8Tjboodj6CB29shemC_F6fciCkN4` |
 | `MIGHTY_CLIENT_SECRET` | From step 3.1 (**secret**) |
 | `MIGHTY_ADMIN_API_KEY` | From step 3.2 (**secret**) |
-| `MIGHTY_BADGE_ID` | From step 3.3 |
+| `MIGHTY_BADGE_ID` | `25410134` |
 
 Already set by Supabase, don't add: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 Optional, with defaults already right for HETMA: `MIGHTY_ISSUER` (`https://community.hetma.org`), `MIGHTY_PLAN_GENERAL` (`1736546`), `MIGHTY_PLAN_HIGHER_ED` (`1819684`).
@@ -103,7 +105,7 @@ Hosted Supabase might reject the internal placeholder email domain. Add a functi
 - [ ] Sign in works and shows your name and tier (General or Higher Ed Hub).
 - [ ] **Admin → Audit log** shows no "Couldn't read membership tier from Mighty" entries. (If it does, the Mighty member ID from sign-in may not match the Admin API's member ID. Tell Claude what it says.)
 - [ ] Upload a certificate: the area shows **Uploaded**, and **View** opens the file.
-- [ ] With a test member account, upload all 10 areas: the credential is earned, the **HETMA Credential** badge appears on that member's Mighty profile, and the public page shows **Active**.
+- [ ] With a test member account, upload all 10 areas: the credential is earned, the **HEx Credential** badge appears on that member's Mighty profile, and the public page shows **Active**.
 - [ ] As an admin, revoke one of that member's uploads: the badge disappears in Mighty, the public page says **no longer active**, and the member sees your reason.
 - [ ] Restore it: the badge comes back.
 - [ ] In a private window, use **New to HETMA? Join free** with a brand-new email: after joining, you land back on the site signed in. (If you end up in the community instead, the join page ignored the return address. The fallback is to come back and press Sign in.)

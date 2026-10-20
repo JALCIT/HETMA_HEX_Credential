@@ -23,10 +23,10 @@ export function shell(content, { user, role, wide = false } = {}) {
     </nav>` : '';
   app.innerHTML = `
     <header class="topbar"><div class="topbar-inner ${wide ? 'wide' : ''}">
-      <a class="brand" href="#/" aria-label="HETMA Credential home">${logo}<span>Credential</span></a>${env}${nav}
+      <a class="brand" href="#/" aria-label="HEx Credential home">${logo}<span>Credential</span></a>${env}${nav}
     </div></header>
     <main id="main" class="page ${wide ? 'wide' : ''}">${content}</main>
-    <footer class="foot ${wide ? 'wide' : ''}"><span>HETMA Credential · sign-in through the <a href="https://community.hetma.org" rel="noopener" target="_blank">HETMA community</a></span></footer>`;
+    <footer class="foot ${wide ? 'wide' : ''}"><span>HEx Credential · sign-in through the <a href="https://community.hetma.org" rel="noopener" target="_blank">HETMA community</a></span></footer>`;
   app.querySelector('[data-signout]')?.addEventListener('click', signOut);
   return app.querySelector('#main');
 }

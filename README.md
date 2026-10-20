@@ -1,10 +1,10 @@
-# HETMA Credential (test site)
+# HEx Credential (test site)
 
-Members of the HETMA community sign in with their Mighty account, upload training certificates from approved providers across the HETMA competency areas, and earn the **HETMA Credential**: a badge on their Mighty profile plus a public credential page they can add to LinkedIn. It runs on an **honor system**: uploads count as soon as the member confirms they're genuine. HETMA admins can spot-check, verify, revoke, restore and pause uploads, and every action is audited.
+Members of the HETMA community sign in with their Mighty account, upload training certificates from approved providers across the HETMA competency areas, and earn the **HEx Credential**: a badge on their Mighty profile plus a public credential page they can add to LinkedIn. It runs on an **honor system**: uploads count as soon as the member confirms they're genuine. HETMA admins can spot-check, verify, revoke, restore and pause uploads, and every action is audited.
 
 This is a **standalone test app**, built on the same stack and conventions as the HETMA Event Passport so it can move into the Passport later. Setup steps for the hosted test site: **[docs/SETUP.md](docs/SETUP.md)**. Working with Claude? Start with [CLAUDE.md](CLAUDE.md).
 
-Wording: always "credential" or "HETMA Credential", never "certification" or "certified". The files members upload from vendors are "certificates".
+Wording: always "credential" or "HEx Credential", never "certification" or "certified". The files members upload from vendors are "certificates".
 
 ## How it works
 

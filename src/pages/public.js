@@ -10,12 +10,12 @@ export async function renderPublic(slug) {
   let c;
   try { c = await publicCredential(slug || ''); } catch { c = { found: false, error: true }; }
   if (!c.found) {
-    main.innerHTML = `<section class="credential missing"><h1>Credential not found</h1><p>${c.error ? 'We couldn’t check this credential right now. Try again shortly.' : 'This link doesn’t match a HETMA Credential. Check that you copied the whole link.'}</p></section>`;
+    main.innerHTML = `<section class="credential missing"><h1>Credential not found</h1><p>${c.error ? 'We couldn’t check this credential right now. Try again shortly.' : 'This link doesn’t match a HEx Credential. Check that you copied the whole link.'}</p></section>`;
     return;
   }
   const active = c.status === 'active';
   const id = credentialId(slug, c.earned_at || c.first_earned_at);
-  document.title = active ? `${c.name} · HETMA Credential` : 'HETMA Credential';
+  document.title = active ? `${c.name} · HEx Credential` : 'HEx Credential';
   main.innerHTML = `
     <article class="credential ${active ? '' : 'inactive'}">
       <div class="cred-head">
@@ -24,7 +24,7 @@ export async function renderPublic(slug) {
           <h1 class="cred-name">${esc(c.name || 'HETMA member')}</h1></div>
       </div>
       ${active ? `
-        <h2>HETMA Credential</h2>
+        <h2>HEx Credential</h2>
         <p class="lede">Issued by HETMA on ${fmtDate(c.earned_at)} for completed training in every HETMA competency area.</p>
         <h3 class="eyebrow">Competency areas (${c.areas.length})</h3>
         <ul class="area-list">${c.areas.map(a => `<li>${icon('check')}<span>${esc(a)}</span></li>`).join('')}</ul>`

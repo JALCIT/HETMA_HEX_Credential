@@ -5,7 +5,7 @@ test('an admin spot-checks, verifies and revokes; the credential and badge follo
   // Priya (1002) has the credential in the demo data; make sure Mighty shows her badge first.
   const priya = await browser.newPage();
   await signInAs(priya, 1002);
-  await expect(priya.getByRole('heading', { name: 'You’ve earned the HETMA Credential' })).toBeVisible();
+  await expect(priya.getByRole('heading', { name: 'You’ve earned the HEx Credential' })).toBeVisible();
   await expect.poll(async () => (await (await fetch(`${MIGHTY}/__mock/state`)).json()).badges['1002']).toEqual([777]);
   const credUrl = await priya.locator('#cred-url').textContent();
 
